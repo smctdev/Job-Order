@@ -53,7 +53,7 @@ export default function ServiceAndManager({
       </div>
       <div className="mt-4">
         <Label>
-          Receipt Number: <span className="text-red-500">*</span>
+          Receipt/SI Number:
         </Label>
         <Input
           error={errors.receiptNumber}

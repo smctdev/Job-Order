@@ -97,7 +97,6 @@ const formSchema = z.object({
   serviceAdvisor: z.string().min(1, "Service Advisor is required"),
   branchManager: z.string().min(1, "Branch Manager is required"),
   dealersName: z.string().min(1, "Dealers name is required"),
-  receiptNumber: z.string().min(1, "Receipt number is required"),
 });
 
 const TrimotorsJobOrderForm = () => {
@@ -423,7 +422,6 @@ const TrimotorsJobOrderForm = () => {
         branchManager: signatures.branchManager,
         remarks,
         dealersName,
-        receiptNumber,
       });
       setErrors({});
       return true;
