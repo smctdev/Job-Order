@@ -40,7 +40,8 @@ class JobOrder extends Model
         return $this->hasMany(JobOrderDetail::class)
             ->where('type', 'job_request')
             ->where('amount', '>', 0)
-            ->whereNotIn('category', ['Upholstery', 'Contractor']);
+            ->whereNotIn('category', ['Upholstery', 'Contractor'])
+            ->where('category', 'NOT LIKE', '%rescue%');
     }
 
     public function jobOrderDetailsByPartsReplacementType()
