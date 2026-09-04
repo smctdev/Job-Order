@@ -34,26 +34,25 @@ class TargetIncomeService
                     ->whereYear('month_of', now()->year)
             )
             ->when(
-                $search,
-                fn($query)
-                =>
-                $query->where('target_income', 'like', "%$search%")
-                    ->orWhereRelation('user', 'name', 'like', "%$search%")
-            )
+                $search, function ($query) use ($search) {
+                    $query->where(function ($query) use ($search) {
+                        $query->where('target_income', 'like', "%{$search}%")
+                            ->orWhereRelation('user', 'name', 'like', "%{$search}%");
+                    });
+                })
+
             ->orderBy($column, $sort['direction'])
             ->paginate($per_page, ['id', 'target_income', 'month_of', 'user_id', 'created_at']);
 
         $targetIncome->through(function ($target) use ($month) {
             $jobOrderIncome = JobOrder::query()
                 ->whereRelation('customer.user', 'id', $target->user_id)
-                ->withSum([
-                    'jobOrderDetailsByJobRequestType'
-                    =>
-                    fn($jobOrderDetail)
-                    =>
-                    $month ? $jobOrderDetail->whereMonth('created_at', $month) : $jobOrderDetail->whereMonth('created_at', now()->month)
-                        ->whereYear('created_at', now()->year)
-                ], 'amount')
+                ->when(
+                    $month,
+                    fn($query) => $query->whereMonth('date', $month)->whereYear('date', $target->month_of ? \Carbon\Carbon::parse($target->month_of)->year : now()->year),
+                    fn($query) => $query->whereMonth('date', now()->month)->whereYear('date', now()->year)
+                )
+                ->withSum('jobOrderDetailsByJobRequestType', 'amount')
                 ->whereNull('status')
                 ->get()
                 ->sum('job_order_details_by_job_request_type_sum_amount');
