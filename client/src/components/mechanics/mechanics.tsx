@@ -86,7 +86,7 @@ const Mechanics = ({
           >
             <PenIcon className="size-5" />
           </Button>
-          <Button
+          {/* <Button
             type="button"
             size={"icon"}
             onClick={handleDeleteMechanics(row?.id)}
@@ -94,7 +94,7 @@ const Mechanics = ({
             variant={"link"}
           >
             <Trash className="size-5" />
-          </Button>
+          </Button> */}
         </div>
       ),
     },
