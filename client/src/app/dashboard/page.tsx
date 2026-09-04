@@ -47,6 +47,7 @@ import { format } from "date-fns";
 import { Spinner } from "@/components/ui/spinner";
 import formatDate from "@/utils/format-date";
 import ViewJobOrder from "@/components/view-job-order";
+import { getJobOrderPrintPageCount } from "@/utils/job-order-pagination";
 import { Skeleton } from "@/components/ui/skeleton";
 import TableLoader from "@/components/table-loader";
 
@@ -99,8 +100,7 @@ const Dashboard = () => {
   const [hasMechanic, setHasMechanic] = useState<boolean>(false);
   const [isScale, setIsScale] = useState<boolean>(false);
   const [isReprint, setIsReprint] = useState<boolean>(false);
-  const [isPrintRestItems, setIsPrintRestItems] = useState<boolean>(false);
-  const [viewRemainingData, setViewRemainingData] = useState<any>(null);
+  const [printPage, setPrintPage] = useState<number>(0);
   const [dataToExport, setDataToExport] = useState<any>(null);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState<boolean>(false);
   const [receiptJobOrderId, setReceiptJobOrderId] = useState<number | null>(
@@ -113,25 +113,16 @@ const Dashboard = () => {
   useEffect(() => {
     if (!isReprint) return;
 
-    const jobRequestCount =
-      viewData?.job_order_details.filter(
-        (item: any) => item.type === "job_request",
-      ).length ?? 0;
-    const partsReplacementCount =
-      viewData?.job_order_details.filter(
-        (item: any) => item.type === "parts_replacement",
-      ).length ?? 0;
+    const totalPages = getJobOrderPrintPageCount(viewData);
 
     window.onafterprint = () => {
-      if (
-        !isPrintRestItems &&
-        (jobRequestCount > 10 || partsReplacementCount > 10)
-      ) {
-        setIsReprint(false);
+      const nextPage = printPage + 1;
+
+      if (nextPage < totalPages) {
         Swal.fire({
           icon: "info",
           title: "Print Rest Items",
-          text: `Are you sure you want to print rest items?`,
+          text: `Are you sure you want to print the rest of the items? (Page ${nextPage + 1} of ${totalPages})`,
           confirmButtonText: "Yes",
           confirmButtonColor: "#3085d6",
           showCancelButton: true,
@@ -139,19 +130,17 @@ const Dashboard = () => {
           allowOutsideClick: false,
         }).then((result) => {
           if (result.isConfirmed) {
-            setIsReprint(true);
-            setIsOpen(false);
-            setIsPrintRestItems(true);
-          }
-          if (result.isDismissed) {
-            setIsPrintRestItems(false);
-            setViewRemainingData(null);
+            setPrintPage(nextPage);
+          } else {
+            setPrintPage(0);
             setIsReprint(false);
+            setIsOpen(false);
           }
         });
       } else {
-        setIsPrintRestItems(false);
+        setPrintPage(0);
         setIsReprint(false);
+        setIsOpen(false);
       }
     };
 
@@ -174,15 +163,26 @@ const Dashboard = () => {
     return () => {
       window.onafterprint = null;
     };
-  }, [isReprint, viewData, isPrintRestItems]);
+  }, [isReprint, viewData, printPage]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+
+      // Ignore clicks inside SweetAlert2 popups (e.g. the "Print Rest
+      // Items?" confirm dialog). SweetAlert2 renders via a portal
+      // outside modalRef/buttonRef, so without this guard confirming
+      // that dialog was mistakenly treated as an "outside click" and
+      // wiped viewData mid-print, breaking subsequent print pages.
+      if (target.closest(".swal2-container")) {
+        return;
+      }
+
       if (
         modalRef.current &&
-        !modalRef.current.contains(event.target as Node) &&
+        !modalRef.current.contains(target) &&
         buttonRef.current &&
-        !buttonRef.current.contains(event.target as Node)
+        !buttonRef.current.contains(target)
       ) {
         setIsOpen(false);
         setViewData(null);
@@ -256,7 +256,6 @@ const Dashboard = () => {
       const response = await api.get(`/job-orders/${id}/browse`);
       if (response.status === 200) {
         setViewData(response?.data?.data);
-        setViewRemainingData(response?.data?.data);
       }
     } catch (error: any) {
       console.error(error);
@@ -572,11 +571,10 @@ const Dashboard = () => {
 
   if (isReprint) {
     return (
-      <ViewJobOrder
-        data={isPrintRestItems ? viewRemainingData : viewData}
-        isReprint={isReprint}
-        isPrintRestItems={isPrintRestItems}
-      />
+      <ViewJobOrder 
+      data={viewData} 
+      isReprint={isReprint} 
+      printPage={printPage} />
     );
   }
 
@@ -978,9 +976,9 @@ const Dashboard = () => {
             </div>
           ) : (
             <ViewJobOrder
-              data={isPrintRestItems ? viewRemainingData : viewData}
+              data={viewData}
               isReprint={isReprint}
-              isPrintRestItems={isPrintRestItems}
+              printPage={printPage}
             />
           )}
         </ModalBody>
@@ -989,7 +987,9 @@ const Dashboard = () => {
             className="bg-blue-400 hover:bg-blue-500 text-white py-5"
             type="button"
             onClick={() => {
-              (setIsReprint(true), toast.dismiss());
+              setPrintPage(0);
+              setIsReprint(true);
+              toast.dismiss();
             }}
           >
             <Printer /> Print
