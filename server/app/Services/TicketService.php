@@ -68,8 +68,9 @@ class TicketService
         $month = request('month', 'ALL');
         $year = request('year', 'ALL');
 
-        $rows = Ticket::query()
+        $counts = Ticket::query()
             ->join('users', 'users.id', '=', 'tickets.user_id')
+            ->join('ticket_categories', 'ticket_categories.id', '=', 'tickets.ticket_category_id')
             ->where('tickets.status', TicketStatus::EDITED->value)
             ->when(
                 $month && $month !== 'ALL',
@@ -79,25 +80,48 @@ class TicketService
                 $year && $year !== 'ALL',
                 fn($q) => $q->whereYear('tickets.edited_at', $year)
             )
-            ->groupBy('tickets.user_id', 'users.name')
-            ->orderByDesc('total_edited')
+            ->groupBy('tickets.user_id', 'users.name', 'ticket_categories.name')
+            ->orderBy('users.name')
             ->selectRaw('
                 tickets.user_id,
                 users.name as user_name,
+                ticket_categories.name as category_name,
                 COUNT(tickets.id) as total_edited
             ')
             ->get()
-            ->map(fn($row) => [
-                'Branch Name' => $row->user_name,
-                'Number of Tickets Edited' => (int) $row->total_edited,
-            ]);
+            ->groupBy('user_id');
 
-        $rows->push([
-            'Branch Name' => 'TOTAL',
-            'Number of Tickets Edited' => $rows->sum('Number of Tickets Edited'),
-        ]);
+        // Only categories that have at least one edit in the result
+        $usedCategories = $counts
+            ->flatten()
+            ->pluck('category_name')
+            ->unique()
+            ->sort()
+            ->values();
 
-        return $rows->values();
+        $rows = $counts->map(function ($branchRows) use ($usedCategories) {
+            $row = ['Branch Name' => $branchRows->first()->user_name];
+
+            foreach ($usedCategories as $name) {
+                $found = $branchRows->firstWhere('category_name', $name);
+                $row[$name] = $found ? (int) $found->total_edited : null; 
+            }
+
+            $row['Total'] = (int) $branchRows->sum('total_edited');
+
+            return $row;
+        })->sortByDesc('Total')->values();
+
+        // TOTAL row
+        $totalRow = ['Branch Name' => 'TOTAL'];
+        foreach ($usedCategories as $name) {
+            $totalRow[$name] = (int) $rows->sum($name);
+        }
+        $totalRow['Total'] = (int) $rows->sum('Total');
+
+        $rows->push($totalRow);
+
+        return $rows;
     }
 
 
