@@ -98,8 +98,8 @@ const TrimotorsPreviewJobOrder = ({
   };
 
   const getPartsQuantity = (key: string): number => {
-    if (!data.partsQuantity) return 0;
-    return data.partsQuantity[key as keyof TrimotorsPartsQuantity] || 0;
+    if (!data.partsQuantity) return 1;
+    return data.partsQuantity[key as keyof TrimotorsPartsQuantity] || 1;
   };
 
   const formatCurrency = (amount: number | undefined): string => {

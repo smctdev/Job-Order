@@ -108,8 +108,8 @@ const TrimotorsPrintJobOrder = ({
   };
 
   const getPartsQuantity = (key: string): number => {
-    if (!data.partsQuantity) return 0;
-    return data.partsQuantity[key as keyof TrimotorsPartsQuantity] || 0;
+    if (!data.partsQuantity) return 1; // Default to 1 if partsQuantity is undefined
+    return data.partsQuantity[key as keyof TrimotorsPartsQuantity] ||  1;
   };
 
   const formatCurrency = (amount: number | undefined): string => {

@@ -86,8 +86,8 @@ const PreviewPrint = ({ data, hasRestData }: PreviewJobOrderProps) => {
   };
 
   const getPartsQuantity = (key: string): number => {
-    if (!data.partsQuantity) return 0;
-    return data.partsQuantity[key as keyof PartsQuantity] || 0;
+    if (!data.partsQuantity) return 1;
+    return data.partsQuantity[key as keyof PartsQuantity] || 1;
   };
 
   const formatCurrency = (amount: number | undefined): string => {
