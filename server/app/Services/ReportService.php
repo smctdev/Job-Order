@@ -304,7 +304,7 @@ class ReportService
                 'Dealer Name'             => $showHeader ? $item->jobOrder?->dealers_name : '',
                 'Next Service Date'       => $showHeader ? $item->jobOrder?->next_schedule_date : '',
                 'Mileage'                 => $showHeader ? $item->jobOrder?->mileage : '',
-                'Mechanics'               => $showHeader ? $item->jobOrder?->mechanics->pluck('name')->join(', ') : '',
+                'Mechanics'               => $item->jobOrder?->mechanics->pluck('name')->join(', '),
                 'Job Requests'            => $item->type === 'job_request' ? $item->category : '',
                 'Coupon Brand'            => $item->type === 'job_request' && strtolower(trim($item->part_brand)) !== 'n/a' ? $item->part_brand : '',
                 'Job Amount'              => $item->type === 'job_request' ? (float) $item->amount : "",
