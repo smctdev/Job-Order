@@ -2,25 +2,44 @@
 
 import { Button } from "@/components/ui/button";
 import Input from "@/components/ui/input";
+import Select from "@/components/ui/select";
 import { PER_PAGE_OPTIONS } from "@/constants/perPageOptipns";
 import useFetch from "@/hooks/useFetch";
 import withAuthPage from "@/lib/hoc/with-auth-page";
 import { PenIcon, Search, SearchSlash, Trash, UserPlus } from "lucide-react";
 import DataTable from "react-data-table-component";
-import { FaCircleNotch, FaRotateRight } from "react-icons/fa6";
+import { FaCircleNotch, FaFileExcel, FaRotateRight } from "react-icons/fa6";
 import AddMechanic from "../../components/mechanics/add-mechanic";
-import { Activity, useState } from "react";
+import { Activity, ChangeEvent, useEffect, useState } from "react";
 import Swal from "sweetalert2";
 import { api } from "@/lib/api";
 import toast from "react-hot-toast";
 import EditMechanic from "../../components/mechanics/edit-mechanic";
 import TableLoader from "@/components/table-loader";
 import { ADMIN_ACCESS } from "@/lib/permissions";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
+import { format } from "date-fns";
+
+type BranchOptionType = {
+  id: string | number;
+  name: string;
+  code: string;
+};
+
+type FilterItemsType = {
+  user_id: string;
+};
 
 const Mechanics = () => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [isOpenEdit, setIsOpenEdit] = useState<boolean>(false);
+  const [isExporting, setIsExporting] = useState<boolean>(false);
   const [selectedMechanic, setSelectedMechanic] = useState<any>(null);
+  const [users, setUsers] = useState<BranchOptionType[]>([]);
+  const [filterItems, setFilterItems] = useState<FilterItemsType>({
+    user_id: "ALL",
+  });
   const {
     data: mechanics,
     isLoading,
@@ -36,7 +55,28 @@ const Mechanics = () => {
     handleSearch,
     handleRefresh,
     fetchData,
-  } = useFetch("/mechanics");
+    setIsLoading,
+  } = useFetch("/mechanics", { filterItems });
+
+  // Load the "All Branches" options
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        const response = await api.get("/user-selection-options");
+        const list = response.data?.data ?? response.data ?? [];
+        setUsers(Array.isArray(list) ? list : []);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    loadUsers();
+  }, []);
+
+  const handleFilterChange =
+    (key: keyof FilterItemsType) => (e: ChangeEvent<HTMLSelectElement>) => {
+      setIsLoading(true);
+      setFilterItems((prev) => ({ ...prev, [key]: e.target.value }));
+    };
 
   const columns = [
     {
@@ -93,6 +133,72 @@ const Mechanics = () => {
       ),
     },
   ];
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      const response = await api.get("/mechanics/export", {
+        params: {
+          user_id: filterItems.user_id,
+        },
+      });
+
+      if (response.status === 200) {
+        const payload = response.data?.data ?? response.data;
+        const list = Array.isArray(payload) ? payload : (payload?.data ?? []);
+
+        if (list.length === 0) {
+          Swal.fire({
+            icon: "info",
+            title: "No data",
+            text: "Walay mechanics nga ma-export.",
+          });
+          return;
+        }
+
+        const rows = list.map((row: any) => ({
+          Mechanic: row.name,
+          Branch: `(${row.branch_code}) - ${row.branch_name}`,
+          "Job Orders": Number(row.job_orders_count),
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(rows);
+        worksheet["!cols"] = [{ wch: 30 }, { wch: 35 }, { wch: 14 }];
+
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Mechanics");
+
+        const excelBuffer = XLSX.write(workbook, {
+          bookType: "xlsx",
+          type: "array",
+        });
+        const blob = new Blob([excelBuffer], {
+          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        });
+
+        const selectedUser = users.find(
+          (u) => String(u.id) === filterItems.user_id,
+        );
+        const userLabel = selectedUser?.code ?? "all-branches";
+
+        saveAs(
+          blob,
+          `mechanics-${userLabel}-${format(new Date(), "yyyy-MM-dd")}.xlsx`,
+        );
+      }
+    } catch (error: any) {
+      console.error(error);
+      Swal.fire({
+        icon: "error",
+        title: "Export failed",
+        text:
+          error?.response?.data?.message ||
+          "Something went wrong. Please try again later.",
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   function handleDeleteMechanics(id: number) {
     return function () {
@@ -157,15 +263,29 @@ const Mechanics = () => {
                 Job Order Printing System — Mechanics Overview
               </p>
             </div>
-            <div className="mb-2 flex justify-between items-center gap-1">
-              <div className="relative">
+            <div className="mb-2 flex flex-wrap items-center gap-1">
+              <div className="w-56 shrink-0">
+                <Select
+                  value={filterItems.user_id}
+                  onChange={handleFilterChange("user_id")}
+                  className="w-full"
+                >
+                  <option value="ALL">All Branches</option>
+                  {users.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      ({u.code}) - {u.name}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+              <div className="relative w-56 shrink-0">
                 <Input
                   type="search"
                   placeholder="Search..."
                   onChange={handleSearch}
                   className="w-full border border-gray-300 rounded-lg px-4 py-2 pl-10 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                 />
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <Search className="pointer-events-none absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               </div>
               <Button
                 type="button"
@@ -191,6 +311,22 @@ const Mechanics = () => {
                 className="bg-blue-500 hover:bg-blue-600 text-white py-5"
               >
                 <UserPlus /> Add Mechanic
+              </Button>
+              <Button
+                type="button"
+                className="bg-emerald-500 hover:bg-emerald-600 text-white py-5"
+                onClick={handleExport}
+                disabled={isExporting}
+              >
+                {isExporting ? (
+                  <>
+                    <FaCircleNotch className="animate-spin" /> Exporting...
+                  </>
+                ) : (
+                  <>
+                    <FaFileExcel /> Export
+                  </>
+                )}
               </Button>
             </div>
           </div>

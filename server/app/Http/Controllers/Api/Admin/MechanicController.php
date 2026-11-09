@@ -82,4 +82,11 @@ class MechanicController extends Controller
             'message' => "Mechanic \"{$mechanic->name}\" deleted successfully.",
         ], 200);
     }
+
+    public function exportMechanics(MechanicService $mechanicService)
+    {
+        return response()->json([
+            'data' => $mechanicService->exportMechanics(),
+        ], 200);
+    }
 }

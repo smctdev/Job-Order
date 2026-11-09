@@ -15,7 +15,7 @@ class MechanicService
 
         $sort = request('sort', ["column" => "name", "direction" => "asc"]);
 
-        $branch_id = request('branch_id', null);
+        $userId = request('user_id', 'ALL');
 
         $column = match ($sort['column']) {
             'user.name' => User::query()->select('code')->whereColumn('users.id', 'mechanics.user_id'),
@@ -28,19 +28,16 @@ class MechanicService
             ->with('user:id,code,name')
             ->withCount('jobOrders')
             ->when(
-                $branch_id,
-                fn($mechanic)
-                =>
-                $mechanic->where('user_id', $branch_id)
+                $userId && $userId !== 'ALL',
+                fn($query) => $query->where('user_id', $userId)
             )
-            ->when(
-                $search,
-                fn($query)
-                =>
-                $query->where('name', 'like', "%{$search}%")
-                    ->orWhereRelation('user', 'name', 'like', "%{$search}%")
-                    ->orWhereRelation('user', 'code', 'like', "%{$search}%")
-            )
+            ->when($search, function ($query) use ($search) {
+                $query->where(function ($query) use ($search) {
+                    $query->where('name', 'like', "%{$search}%")
+                        ->orWhereRelation('user', 'name', 'like', "%{$search}%")
+                        ->orWhereRelation('user', 'code', 'like', "%{$search}%");
+                });
+            })
             ->orderBy($column, $sort['direction'])
             ->paginate($per_page, ['id', 'name', 'user_id']);
     }
@@ -96,4 +93,25 @@ class MechanicService
 
         return $mechanic->delete();
     }
+
+    public function exportMechanics()
+    {
+        $userId = request('user_id', 'ALL');
+
+        return Mechanic::query()
+            ->with('user:id,code,name')
+            ->withCount('jobOrders')
+            ->when($userId && $userId !== 'ALL', fn($query) => $query->where('user_id', $userId))
+            ->orderBy('name')
+            ->get(['id', 'name', 'user_id'])
+            ->map(fn($mechanic) => [
+                'id'               => $mechanic->id,
+                'name'             => $mechanic->name,
+                'branch_code'      => $mechanic->user?->code,
+                'branch_name'      => $mechanic->user?->name,
+                'job_orders_count' => $mechanic->job_orders_count,
+            ])
+            ->values();
+    }
 }
+
