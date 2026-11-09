@@ -25,6 +25,8 @@ class TicketService
 
         $year = request('year', 'ALL');
 
+        $userId = request('user_id', 'ALL');
+
         $sort = request('sort', ["column" => "created_at", "direction" => "desc"]);
 
         $tickets = Ticket::query()
@@ -44,6 +46,7 @@ class TicketService
                 });
             })
             ->when($status !== 'ALL', fn($query) => $query->where('status', $status))
+            ->when($userId && $userId !== 'ALL', fn($query) => $query->where('user_id', $userId))
             ->when($month && $month !== 'ALL', fn($query) => $query->whereMonth('created_at', $month))
             ->when($year && $year !== 'ALL', fn($query) => $query->whereYear('created_at', $year))
             ->orderBy($sort['column'], $sort['direction'])
@@ -80,6 +83,7 @@ class TicketService
                 $year && $year !== 'ALL',
                 fn($q) => $q->whereYear('tickets.edited_at', $year)
             )
+            ->when(request('user_id') && request('user_id') !== 'ALL', fn($query) => $query->where('user_id', request('user_id')))
             ->groupBy('tickets.user_id', 'users.name', 'ticket_categories.name')
             ->orderBy('users.name')
             ->selectRaw('

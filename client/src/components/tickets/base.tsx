@@ -5,7 +5,7 @@ import { PER_PAGE_OPTIONS } from "@/constants/perPageOptipns";
 import useFetch from "@/hooks/useFetch";
 import { format, formatDistanceToNowStrict } from "date-fns";
 import { Eye, Search, SearchSlash, Trash } from "lucide-react";
-import { useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 import DataTable from "react-data-table-component";
 import { FaCircleNotch, FaRotateRight, FaFileExcel } from "react-icons/fa6";
 import ViewTicket from "./view";
@@ -47,6 +47,7 @@ type FilterItemsType = {
   status: string;
   month: string;
   year: string;
+  user_id: string;
 };
 
 export const TICKET_STATUS_COLOR = {
@@ -76,10 +77,12 @@ const YEARS = Array.from({ length: 2 }, (_, i) => CURRENT_YEAR - i);
 export default function TicketBaseContent() {
   const [isView, setIsView] = useState<boolean>(false);
   const [isExporting, setIsExporting] = useState<boolean>(false);
+  const [users, setUsers] = useState<any[]>([]);
   const [filterItems, setFilterItems] = useState<FilterItemsType>({
     status: "ALL",
     month: "ALL",
     year: "ALL",
+    user_id: "ALL",
   });
   const [selectedId, setSelectedId] = useState<number | string | null>(null);
   const {
@@ -100,9 +103,23 @@ export default function TicketBaseContent() {
     setIsLoading,
   } = useFetch("/tickets", { filterItems });
 
+  // Load the "All Branches" options
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        const response = await api.get("/user-selection-options");
+        const list = response.data?.data ?? response.data ?? [];
+        setUsers(Array.isArray(list) ? list : []);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    loadUsers();
+  }, []);
+
   const handleFilterChange =
     (key: keyof FilterItemsType) =>
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
+    (e: ChangeEvent<HTMLSelectElement>) => {
       setFilterItems((prev) => ({ ...prev, [key]: e.target.value }));
       setIsLoading(true);
     };
@@ -114,6 +131,7 @@ export default function TicketBaseContent() {
         params: {
           month: filterItems.month,
           year: filterItems.year,
+          user_id: filterItems.user_id,
         },
       });
 
@@ -132,6 +150,10 @@ export default function TicketBaseContent() {
           type: "application/octet-stream",
         });
 
+        const selectedUser = users.find(
+          (u) => String(u.id) === filterItems.user_id,
+        );
+        const userLabel = selectedUser?.code ?? "all-branches";
         const monthLabel =
           filterItems.month !== "ALL"
             ? MONTHS[Number(filterItems.month) - 1]
@@ -141,7 +163,7 @@ export default function TicketBaseContent() {
 
         saveAs(
           blob,
-          `edited-tickets-by-branch-${monthLabel}-${yearLabel}.xlsx`,
+          `edited-tickets-${userLabel}-${monthLabel}-${yearLabel}.xlsx`,
         );
       }
     } catch (error: any) {
@@ -321,6 +343,17 @@ export default function TicketBaseContent() {
           </div>
 
           <div className="mb-2 flex gap-1 items-center flex-col lg:flex-row">
+            <Select
+              value={filterItems.user_id}
+              onChange={handleFilterChange("user_id")}
+            >
+              <option value="ALL">All Branches</option>
+              {users.map((u) => (
+                <option key={u.id} value={u.id}>
+                  ({u.code}) - {u.name}
+                </option>
+              ))}
+            </Select>
             <Select
               value={filterItems.status}
               onChange={handleFilterChange("status")}
