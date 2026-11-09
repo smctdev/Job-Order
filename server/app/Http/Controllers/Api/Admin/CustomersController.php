@@ -20,6 +20,10 @@ class CustomersController extends Controller
 
         $search = request('search') ?: '';
 
+        $userId = request('filterItems.user_id') ?? request('user_id');
+        $month  = request('filterItems.month') ?? request('month');
+        $year   = request('filterItems.year') ?? request('year');
+
         $customers = Customer::with('user:id,code,name')
             ->when(
                 $search,
@@ -37,6 +41,9 @@ class CustomersController extends Controller
                         )
                 )
             )
+            ->when($userId, fn($query) => $query->where('user_id', $userId))
+            ->when($month, fn($query) => $query->whereMonth('created_at', $month))
+            ->when($year, fn($query) => $query->whereYear('created_at', $year))
             ->orderBy($sort["column"], $sort["direction"])
             ->paginate($per_page);
 
@@ -59,6 +66,42 @@ class CustomersController extends Controller
         return response()->json([
             'message' => 'Customers retrieved successfully.',
             'data'    => $customers
+        ], 200);
+    }
+
+    public function export()
+    {
+        $search = request('search') ?: '';
+        $userId = request('user_id');
+        $month  = request('month');
+        $year   = request('year');
+
+        $customers = Customer::with('user:id,code,name')
+            ->when(
+                $search,
+                fn($query) =>
+                $query->where(
+                    fn($subQuery) =>
+                    $subQuery->where("name", "like", "%{$search}%")
+                        ->orWhere("address", "like", "%{$search}%")
+                        ->orWhere("contact_number", "like", "%{$search}%")
+                        ->orWhereHas(
+                            "user",
+                            fn($userQuery) =>
+                            $userQuery->where("name", "like", "%{$search}%")
+                                ->orWhere("code", "like", "%{$search}%")
+                        )
+                )
+            )
+            ->when($userId, fn($query) => $query->where('user_id', $userId))
+            ->when($month, fn($query) => $query->whereMonth('created_at', $month))
+            ->when($year, fn($query) => $query->whereYear('created_at', $year))
+            ->orderBy('id', 'desc')
+            ->get();
+
+        return response()->json([
+            'message' => 'Customers exported successfully.',
+            'data'    => $customers,
         ], 200);
     }
 
