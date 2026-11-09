@@ -37,6 +37,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:admin')->group(function () {
         Route::controller(CustomersController::class)->group(function () {
             Route::get('customers', 'index');
+            Route::get('customers/export', 'export');
         });
         Route::controller(UsersController::class)->group(function () {
             Route::get('users', 'index');
@@ -71,6 +72,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::patch('/tickets/rejected-reason/{ticket}/update-rejected-reason', 'updateTicketRejectedReason');
             Route::get('/export-ticket-reports', [TicketController::class, 'exportReports']);
         });
+        Route::get('target-incomes/export', [TargetIncomeController::class, 'exportTargetIncomes']);
         Route::resource('target-incomes', TargetIncomeController::class);
         Route::resource('area-managers', AreaManagerController::class);
         Route::apiResource('ticket-categories', TicketCategoryController::class);
@@ -144,6 +146,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('ticket-categories-and-brands', 'getAllTicketCategoriesAndBrands');
         Route::delete('/tickets/{ticket}/delete', 'destroy');
     });
+    Route::get('mechanics/export', [MechanicController::class, 'exportMechanics']);
     Route::resource('mechanics', MechanicController::class);
     Route::resource('tickets', TicketController::class);
 });

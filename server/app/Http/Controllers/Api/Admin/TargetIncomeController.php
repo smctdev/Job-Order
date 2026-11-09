@@ -84,4 +84,9 @@ class TargetIncomeController extends Controller
             'data' => $targetIncomes
         ], 201);
     }
+
+    public function exportTargetIncomes(TargetIncomeService $targetIncomeService)
+    {
+        return $targetIncomeService->exportTargetIncomes();
+    }
 }

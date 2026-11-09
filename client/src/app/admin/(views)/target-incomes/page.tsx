@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { Activity, ChangeEvent, useState } from "react";
 import DataTable from "react-data-table-component";
-import { FaCircleNotch, FaRotateRight } from "react-icons/fa6";
+import { FaCircleNotch, FaFileExcel, FaRotateRight } from "react-icons/fa6";
 import AddTargetIncome from "../../components/target-income/add-target-income";
 import EditTargetIncome from "../../components/target-income/edit-target-income";
 import phpCurrency from "@/utils/phpCurrency";
@@ -28,11 +28,14 @@ import { format } from "date-fns";
 import Select from "@/components/ui/select";
 import TableLoader from "@/components/table-loader";
 import { ADMIN_ACCESS } from "@/lib/permissions";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 
 const Reports = () => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [isOpenEdit, setIsOpenEdit] = useState<boolean>(false);
   const [selectedTargetIncome, setSelectedTargetIncome] = useState<any>(null);
+  const [isExporting, setIsExporting] = useState<boolean>(false);
   const [filters, setFilters] = useState<{ month: string; year: string }>({
     month: (new Date().getMonth() + 1).toString(),
     year: new Date().getFullYear().toString(),
@@ -209,6 +212,65 @@ const Reports = () => {
     },
   ];
 
+  const handleExport = async () => {
+  setIsExporting(true);
+  try {
+    const response = await api.get("/target-incomes/export", {
+      params: {
+        month: filters.month,
+        year: filters.year,
+      },
+    });
+
+    if (response.status === 200) {
+      const rows = (response.data.data ?? []).map((row: any) => ({
+        Branch: `(${row.user?.code}) - ${row.user?.name}`,
+        "Month Of": format(row.month_of, "MMMM yyyy"),
+        "Target Income": Number(row.target_income),
+        "Shop Income": Number(row.shop_income),
+        "Lacking/Exceeding Income": Number(row.lacking_or_exceeding),
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(rows);
+      worksheet["!cols"] = [
+        { wch: 35 },
+        { wch: 18 },
+        { wch: 18 },
+        { wch: 18 },
+        { wch: 26 },
+      ];
+
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Target Incomes");
+
+      const excelBuffer = XLSX.write(workbook, {
+        bookType: "xlsx",
+        type: "array",
+      });
+      const blob = new Blob([excelBuffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+
+      const monthLabel =
+        DATES.find((d) => String(d.value) === String(filters.month))?.label ??
+        "all-months";
+
+      saveAs(blob, `target-incomes-${monthLabel}-${filters.year}.xlsx`);
+    }
+  } catch (error: any) {
+    console.error(error);
+    Swal.fire({
+      icon: "error",
+      title: "Export failed",
+      text:
+        error?.response?.data?.message ||
+        "Something went wrong. Please try again later.",
+    });
+  } finally {
+    setIsExporting(false);
+  }
+};
+
   function handleDeleteTargetIncomes(id: number) {
     return function () {
       Swal.fire({
@@ -355,6 +417,22 @@ const Reports = () => {
                 className="bg-blue-500 hover:bg-blue-600 text-white py-5"
               >
                 <CircleFadingPlus /> Add Target Income
+              </Button>
+              <Button
+                type="button"
+                className="bg-emerald-500 hover:bg-emerald-600 text-white py-5"
+                onClick={handleExport}
+                disabled={isExporting}
+              >
+                {isExporting ? (
+                  <>
+                    <FaCircleNotch className="animate-spin" /> Exporting...
+                  </>
+                ) : (
+                  <>
+                    <FaFileExcel /> Export 
+                  </>
+                )}
               </Button>
             </div>
           </div>

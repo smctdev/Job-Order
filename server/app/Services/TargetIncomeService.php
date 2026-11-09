@@ -62,7 +62,7 @@ class TargetIncomeService
                 ->sum('job_order_details_by_job_request_type_sum_amount');
 
             return [
-                'id'                   => $target->id,
+
                 'user'                 => [
                     'id'               => $target->user_id,
                     'name'             => $target->user->name,
@@ -161,4 +161,47 @@ class TargetIncomeService
 
         return $targetIncomes;
     }
+
+    public function exportTargetIncomes()
+{
+    $month = request('month');
+    $year  = request('year');
+
+    $targets = TargetIncome::query()
+        ->with('user:id,code,name')
+        ->whereMonth('month_of', $month)
+        ->whereYear('month_of', $year)
+        ->orderBy('user_id')
+        ->get(['id', 'target_income', 'month_of', 'user_id', 'created_at']);
+
+    // Isang query para sa lahat ng user, tapos i-group sa memory
+    $incomeByUser = JobOrder::query()
+        ->with('customer:id,user_id')
+        ->whereRelation('customer.user', fn ($q) => $q->whereIn('id', $targets->pluck('user_id')))
+        ->whereMonth('date', $month)
+        ->whereYear('date', $year)
+        ->withSum('jobOrderDetailsByJobRequestType', 'amount')
+        ->whereNull('status')
+        ->get()
+        ->groupBy(fn ($jobOrder) => $jobOrder->customer->user_id)
+        ->map(fn ($group) => $group->sum('job_order_details_by_job_request_type_sum_amount'));
+
+    $rows = $targets->map(function ($target) use ($incomeByUser) {
+        $jobOrderIncome = $incomeByUser[$target->user_id] ?? 0;
+
+        return [
+            'user'                 => [
+                'id'   => $target->user_id,
+                'name' => $target->user->name,
+                'code' => $target->user->code,
+            ],
+            'target_income'        => $target->target_income,
+            'shop_income'          => $jobOrderIncome,
+            'lacking_or_exceeding' => $jobOrderIncome - $target->target_income,
+            'month_of'             => $target->month_of,
+        ];
+    })->values();
+
+    return response()->json(['data' => $rows]);
+}
 }
