@@ -62,7 +62,7 @@ class TargetIncomeService
                 ->sum('job_order_details_by_job_request_type_sum_amount');
 
             return [
-
+                'id'                   => $target->id,
                 'user'                 => [
                     'id'               => $target->user_id,
                     'name'             => $target->user->name,
