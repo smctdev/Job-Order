@@ -241,8 +241,9 @@ export default function SpecificJobRequest({
                         )
                       }
                       step="0.01"
-                      className="pl-8 pr-3 text-right w-full"
+                      className="pl-8 pr-3 text-right w-full [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       required
+                      onWheel={(e) => (e.target as HTMLInputElement).blur()}
                     />
                   </div>
                 </>
@@ -290,8 +291,9 @@ export default function SpecificJobRequest({
                       )
                     }
                     step="0.01"
-                    className="pl-8 pr-3 text-right"
+                    className="pl-8 pr-3 text-right w-full [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     required
+                    onWheel={(e) => (e.target as HTMLInputElement).blur()}
                   />
                 </div>
               )}
@@ -363,8 +365,9 @@ export default function SpecificJobRequest({
                       updateOthersAmount(item.id, Number(e.target.value))
                     }
                     step="0.01"
-                    className="pl-8 pr-3 text-right"
+                    className="pl-8 pr-3 text-right w-full [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     required
+                    onWheel={(e) => (e.target as HTMLInputElement).blur()}
                   />
                 </div>
                 <Button

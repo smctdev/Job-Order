@@ -169,8 +169,9 @@ export default function TrimotorsJobRequest({
               );
             }}
             step="0.01"
-            className="pl-8 pr-3 text-right text-sm"
+            className="pl-8 pr-3 text-right text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             required
+            onWheel={(e) => (e.target as HTMLInputElement).blur()}
           />
         </div>
       )}
@@ -275,8 +276,9 @@ export default function TrimotorsJobRequest({
                           )
                         }
                         step="0.01"
-                        className="pl-8 pr-3 text-right w-full"
+                        className="pl-8 pr-3 text-right w-full [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         required
+                        onWheel={(e) => (e.target as HTMLInputElement).blur()}
                       />
                     </div>
                   </>
@@ -364,8 +366,9 @@ export default function TrimotorsJobRequest({
                             updateOthersAmount(item.id, Number(e.target.value))
                           }
                           step="0.01"
-                          className="pl-8 pr-3 text-right text-sm"
+                          className="pl-8 pr-3 text-right text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           required
+                          onWheel={(e) => (e.target as HTMLInputElement).blur()}
                         />
                       </div>
                     </div>
