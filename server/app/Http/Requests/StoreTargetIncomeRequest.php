@@ -26,7 +26,7 @@ class StoreTargetIncomeRequest extends FormRequest
         return [
             'user_ids'      => ['required', Rule::exists('users', 'id')],
             'user_ids.*'    => ['required', Rule::exists('users', 'id')],
-            'target_income' => ['required', 'numeric', 'min:1', 'max:999999']
+            'target_income' => ['required', 'numeric', 'min:0', 'max:999999']
         ];
     }
 }

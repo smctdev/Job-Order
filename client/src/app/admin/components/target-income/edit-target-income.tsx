@@ -19,7 +19,7 @@ import { Spinner } from "@/components/ui/spinner";
 const schema = z.object({
   target_income: z
     .number()
-    .min(1, "Target income must be at least 1")
+    .min(0, "Target income must be at least 0")
     .max(999999, "Target income must be less than 999999"),
 });
 

@@ -24,7 +24,7 @@ class UpdateTargetIncomeRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'target_income' => ['required', 'numeric', 'min:1', 'max:999999']
+            'target_income' => ['required', 'numeric', 'min:0', 'max:999999']
         ];
     }
 }

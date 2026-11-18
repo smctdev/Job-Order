@@ -22,7 +22,7 @@ import { MultipleSelect } from "@/components/ui/multiple-select";
 const schema = z.object({
   target_income: z
     .number()
-    .min(1, "Target income must be at least 1")
+    .min(0, "Target income must be at least 0")
     .max(999999, "Target income must be less than 999999"),
   user_ids: z.array(z.string()).min(1, "Branch selection is required"),
 });
@@ -205,10 +205,10 @@ export default function AddTargetIncome({
                 <Label htmlFor="target_income">Target Income</Label>
                 <Input
                   type="number"
-                  min="1"
+                  min="0"
                   max="999999"
                   className="py-3"
-                  placeholder="Enter target income (1-999999)"
+                  placeholder="Enter target income (0-999999)"
                   {...register("target_income", { valueAsNumber: true })}
                 />
                 {errors.target_income && (
