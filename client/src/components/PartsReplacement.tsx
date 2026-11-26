@@ -209,11 +209,8 @@ export default function PartsReplacementSection({
   };
 
   const updatePartsOthersQuantity = (id: string, quantity: number) => {
-    // ✅ Initialize to 1 if value is 0 or invalid
-    let safeQuantity = quantity;
-    if (safeQuantity <= 0 || isNaN(safeQuantity)) {
-      safeQuantity = 1;
-    }
+    // Empty/invalid stays 0 (shown as blank), same as the amount input
+    const safeQuantity = isNaN(quantity) || quantity < 0 ? 0 : quantity;
 
     const updatedItems = partsOthersItems.map((item) =>
       item.id === id ? { ...item, quantity: safeQuantity } : item,
@@ -386,15 +383,16 @@ export default function PartsReplacementSection({
                             <Input
                               type="number"
                               min="1"
-                              value={partsQuantity[quantityKey] || 1}
+                              value={partsQuantity[quantityKey] || ""}
                               onChange={(e) =>
                                 handleQuantityChange(
                                   quantityKey,
                                   Number(e.target.value),
                                 )
                               }
-                              className="w-16 text-center"
+                              className="w-16 text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                               required
+                              onWheel={(e) => (e.target as HTMLInputElement).blur()}
                             />
                           </div>
 
@@ -418,8 +416,9 @@ export default function PartsReplacementSection({
                                 )
                               }
                               step="0.01"
-                              className="pl-8 pr-3 text-right"
+                              className="pl-8 pr-3 text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                               required
+                              onWheel={(e) => (e.target as HTMLInputElement).blur()}
                             />
                           </div>
                         </>
@@ -522,14 +521,16 @@ export default function PartsReplacementSection({
                           <Input
                             type="number"
                             min="1"
-                            value={item.quantity || 1}
+                            onWheel={(e) => (e.target as HTMLInputElement).blur()}
+                            required
+                            value={item.quantity || ""}
                             onChange={(e) =>
                               updatePartsOthersQuantity(
                                 item.id,
                                 Number(e.target.value),
                               )
                             }
-                            className="w-16 text-center"
+                            className="w-16 text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           />
                         </div>
 
@@ -551,8 +552,9 @@ export default function PartsReplacementSection({
                               )
                             }
                             step="0.01"
-                            className="pl-8 pr-3 text-right"
+                            className="pl-8 pr-3 text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             required
+                            onWheel={(e) => (e.target as HTMLInputElement).blur()}
                           />
                         </div>
                       </>
