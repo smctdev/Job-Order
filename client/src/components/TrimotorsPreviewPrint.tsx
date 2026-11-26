@@ -605,7 +605,7 @@ const TrimotorsPreviewJobOrder = ({
 
         {/* Grand Total */}
         <div className="flex justify-between items-center border border-black border-t-0 py-1">
-          <div className="font-bold ml-1 text-xxs">
+          <div className="font-bold ml-1 text-xxs" style={{ fontSize: "10pt" }}>
             Grand Total: {phpCurrency(grandTotal)}
           </div>
         </div>

@@ -697,7 +697,7 @@ const ViewJobOrder = ({
                 {isLastPage && (
                   <>
                     <div className="flex justify-between items-center border-[0.1px] border-black border-t-0 py-0.5">
-                      <div className="font-bold ml-1">
+                      <div className="font-bold ml-1" style={{ fontSize: "10pt" }}>
                         Grand Total: {phpCurrency(grandTotal)}
                       </div>
                     </div>
