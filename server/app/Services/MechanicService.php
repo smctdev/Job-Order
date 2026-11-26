@@ -14,30 +14,40 @@ class MechanicService
         $per_page = request('perPage', 10);
 
         $sort = request('sort', ["column" => "name", "direction" => "asc"]);
+        $search = request('search', '');
 
-        $userId = request('user_id', 'ALL');
+        $user_id = request('user_id', 'ALL');   // filter sa admin
+        $branch_id = request('branch_id');      // branch sa user nga makita ang mechanics
 
         $column = match ($sort['column']) {
             'user.name' => User::query()->select('code')->whereColumn('users.id', 'mechanics.user_id'),
             default => $sort['column']
         };
 
-        $search = request('search', '');
+        $hasUser = $user_id && $user_id !== 'ALL';
+        $hasBranch = $branch_id && $branch_id !== 'ALL';
 
         return Mechanic::query()
             ->with('user:id,code,name')
             ->withCount('jobOrders')
-            ->when(
-                $userId && $userId !== 'ALL',
-                fn($query) => $query->where('user_id', $userId)
-            )
-            ->when($search, function ($query) use ($search) {
-                $query->where(function ($query) use ($search) {
-                    $query->where('name', 'like', "%{$search}%")
-                        ->orWhereRelation('user', 'name', 'like', "%{$search}%")
-                        ->orWhereRelation('user', 'code', 'like', "%{$search}%");
+            ->when($hasUser || $hasBranch, function ($query) use ($hasUser, $hasBranch, $user_id, $branch_id) {
+                $query->where(function ($q) use ($hasUser, $hasBranch, $user_id, $branch_id) {
+                    if ($hasUser) {
+                        $q->orWhere('user_id', $user_id);
+                    }
+                    if ($hasBranch) {
+                        $q->orWhere('user_id', $branch_id);
+                    }
                 });
             })
+            ->when(
+                $search,
+                fn($query) => $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhereRelation('user', 'name', 'like', "%{$search}%")
+                        ->orWhereRelation('user', 'code', 'like', "%{$search}%");
+                })
+            )
             ->orderBy($column, $sort['direction'])
             ->paginate($per_page, ['id', 'name', 'user_id']);
     }
